@@ -36,6 +36,10 @@ require 'vendor/autoload.php';
 
 use OctopusLLM\Gateway\OctopusLLM;
 
+// Store your keys in .env file:
+// GROQ_KEYS=gsk_key1,gsk_key2,gsk_key3
+// OPENROUTER_KEYS=sk-or-key1,sk-or-key2
+
 // Initialize the Gateway config
 $llm = new OctopusLLM([
     'providers' => [
@@ -44,7 +48,7 @@ $llm = new OctopusLLM([
             'baseURL' => 'https://api.groq.com/openai/v1',
             'model' => 'llama3-70b-8192',
             'priority' => 1,
-            'keys' => ['gsk_foo1', 'gsk_foo2'],
+            'keys' => explode(',', $_ENV['GROQ_KEYS'] ?? ''),
             'cooldown' => 60
         ],
         [
@@ -52,11 +56,10 @@ $llm = new OctopusLLM([
             'baseURL' => 'https://openrouter.ai/api/v1',
             'model' => 'meta-llama/llama-3-70b-instruct',
             'priority' => 2,
-            'keys' => ['sk-or-foo1'],
+            'keys' => explode(',', $_ENV['OPENROUTER_KEYS'] ?? ''),
             'cooldown' => 120
         ]
     ]
-
 ]);
 
 // Use it like a regular OpenAI Client
