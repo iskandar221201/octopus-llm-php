@@ -1,4 +1,8 @@
 # Octopus LLM PHP Gateway
+![Packagist Version](https://img.shields.io/packagist/v/octopus-llm/php)
+![PHP Version](https://img.shields.io/packagist/php-v/octopus-llm/php)
+![License](https://img.shields.io/packagist/l/octopus-llm/php)
+![Downloads](https://img.shields.io/packagist/dt/octopus-llm/php)
 
 OpenAI-compatible AI gateway with multi-key rotation, circuit breaker, and zero-cost free tier management for production usage.
 
