@@ -5,6 +5,7 @@
     "license": "MIT",
     "require": {
         "php": ">=8.1",
+        "guzzlehttp/guzzle": "^7.0",
         "openai-php/client": "^0.10"
     },
     "require-dev": {
