@@ -5,6 +5,21 @@ OpenAI-compatible AI gateway with multi-key rotation, circuit breaker, and zero-
 ## Overview
 Octopus-LLM is a robust PHP gateway that acts as a wrapper around the `openai-php/client` library. It automatically handles API key rotation using least-recently-used (LRU) patterns across multiple AI providers (like Groq, Cerebras, and OpenRouter), falls back to secondary providers if primary keys fail, protects your application using a configurable circuit breaker, and exposes events for recovery monitoring – all without needing a complicated infrastructure database.
 
+## Zero-Cost Free Tier Strategy
+
+Octopus-LLM is designed to maximize free tier API quotas across providers.
+With enough keys, you can run production AI workloads at zero cost:
+
+| Provider    | Free Limit       | Keys needed for ~1k req/day |
+|-------------|------------------|-----------------------------|
+| Groq        | 14,400 req/day   | 1                           |
+| Cerebras    | ~14,400 req/day  | 1                           |
+| OpenRouter  | Varies by model  | 1–3                         |
+
+Register multiple free accounts → add all keys to the pool →
+Octopus-LLM handles rotation automatically.
+
+
 ## Installation
 You can install this package easily via Composer:
 ```bash
@@ -25,16 +40,19 @@ $llm = new OctopusLLM([
             'baseURL' => 'https://api.groq.com/openai/v1',
             'model' => 'llama3-70b-8192',
             'priority' => 1,
-            'keys' => ['gsk_foo1', 'gsk_foo2']
+            'keys' => ['gsk_foo1', 'gsk_foo2'],
+            'cooldown' => 60
         ],
         [
             'id' => 'openrouter',
             'baseURL' => 'https://openrouter.ai/api/v1',
             'model' => 'meta-llama/llama-3-70b-instruct',
             'priority' => 2,
-            'keys' => ['sk-or-foo1']
+            'keys' => ['sk-or-foo1'],
+            'cooldown' => 120
         ]
     ]
+
 ]);
 
 // Use it like a regular OpenAI Client
@@ -45,7 +63,7 @@ try {
     ]);
 
     echo $response->content;
-    echo "Served by: " . $response->providerId;
+    echo "Served by: " . $response->provider;
     
 } catch (\OctopusLLM\Gateway\Exceptions\GatewayExhaustedException $e) {
     echo "All providers and keys failed!";
@@ -159,3 +177,5 @@ This version 1.x library **explicitly does NOT aim to support**:
 - Audio/Vision multi-modal data processing.
 - Persistent complex conversation thread management (Send full context history array manually).
 - Custom non-chat completion endpoints (such as `embeddings/` or `moderation/`).
+- Gemini native API support (use Gemini via OpenRouter instead).
+
