@@ -161,11 +161,26 @@ You can hook into real-time health events using `$llm->on(string $event, callabl
 - **`fallback`**: `($failedProviderId, $nextProviderId)` -> When attempting automatic fallback to next priority.
 
 ## CI4 Integration
-If you intend to use this package with CodeIgniter 4, you should:
+If you intend to use this package with CodeIgniter 4, follow these steps:
 
-1. Wrap the initialization in a Factory/Service instance: `\Config\Services::octopus()`.
-2. Schedule `php spark octopus:recover` via CI4 tasks executing `$llm->runRecovery()`.
-3. Utilize native filesystem implementations or register `storage` configuration utilizing CI4 databases.
+1. **Register the Service**: Add an `octopus` method to your `app/Config/Services.php`:
+   ```php
+   public static function octopus($getShared = true)
+   {
+       if ($getShared) {
+           return static::getSharedInstance('octopus');
+       }
+
+       return new \OctopusLLM\Gateway\OctopusLLM(config('Octopus')); // Assumes you have an Octopus config file
+   }
+   ```
+
+2. **Run Recovery Command**: The package includes a built-in spark command. You can run it manually or schedule it:
+   ```bash
+   php spark octopus:recover
+   ```
+
+3. **Storage**: Utilize the default `JsonFileStorage` or implement a custom `StorageInterface` if you need to persist state in a database (e.g., using CI4's Query Builder).
 
 ## Custom Storage
 OctopusLLM exposes `OctopusLLM\Gateway\Contracts\StorageInterface` which requires two methods:
