@@ -163,24 +163,70 @@ You can hook into real-time health events using `$llm->on(string $event, callabl
 ## CI4 Integration
 If you intend to use this package with CodeIgniter 4, follow these steps:
 
-1. **Register the Service**: Add an `octopus` method to your `app/Config/Services.php`:
-   ```php
-   public static function octopus($getShared = true)
-   {
-       if ($getShared) {
-           return static::getSharedInstance('octopus');
-       }
+1. **Register the Service**: Add an `octopus()` method to `app/Config/Services.php`:
+```php
+public static function octopus(bool $getShared = true): \OctopusLLM\Gateway\OctopusLLM
+{
+    if ($getShared) {
+        return static::getSharedInstance('octopus');
+    }
 
-       return new \OctopusLLM\Gateway\OctopusLLM(config('Octopus')); // Assumes you have an Octopus config file
-   }
-   ```
+    return new \OctopusLLM\Gateway\OctopusLLM([
+        'providers' => [
+            [
+                'id'       => 'groq',
+                'baseURL'  => 'https://api.groq.com/openai/v1',
+                'model'    => 'llama-3.1-8b-instant',
+                'keys'     => explode(',', env('GROQ_KEYS', '')),
+                'priority' => 1,
+                'cooldown' => 60,
+            ],
+        ],
+    ]);
+}
+```
 
-2. **Run Recovery Command**: The package includes a built-in spark command. You can run it manually or schedule it:
-   ```bash
-   php spark octopus:recover
-   ```
+2. **Register the Recovery Command**: CI4 does not auto-discover commands from vendor packages. Create a wrapper at `app/Commands/OctopusRecover.php`:
+```php
+<?php
 
-3. **Storage**: Utilize the default `JsonFileStorage` or implement a custom `StorageInterface` if you need to persist state in a database (e.g., using CI4's Query Builder).
+namespace App\Commands;
+
+use CodeIgniter\CLI\BaseCommand;
+use CodeIgniter\CLI\CLI;
+
+class OctopusRecover extends BaseCommand
+{
+    protected $group       = 'Octopus';
+    protected $name        = 'octopus:recover';
+    protected $description = 'Ping all inactive keys and reactivate if healthy.';
+
+    public function run(array $params)
+    {
+        $octopus = \Config\Services::octopus();
+        $report  = $octopus->runRecovery();
+
+        CLI::write('Recovery complete.', 'green');
+        CLI::write('Total pinged : ' . $report->total);
+        CLI::write('Recovered    : ' . count($report->recovered));
+        CLI::write('Still failed : ' . count($report->failed));
+    }
+}
+```
+
+3. **Schedule Recovery**: Run via CI4 Tasks or crontab every minute:
+```bash
+* * * * * cd /path/to/your/app && php spark octopus:recover >> /dev/null 2>&1
+```
+
+4. **Usage**:
+```php
+$response = \Config\Services::octopus()->chat([
+    ['role' => 'system', 'content' => 'You are a helpful assistant.'],
+    ['role' => 'user',   'content' => $userMessage],
+]);
+echo $response->content;
+```
 
 ## Custom Storage
 OctopusLLM exposes `OctopusLLM\Gateway\Contracts\StorageInterface` which requires two methods:
